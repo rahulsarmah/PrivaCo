@@ -71,6 +71,14 @@ details{margin-top:18px}
 summary{cursor:pointer;font-weight:600}
 footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--mute);font-size:14px}
 footer .legal{border-left:4px solid var(--ink);padding-left:14px;max-width:46em;color:var(--ink)}
+.where{margin-top:18px;border:1px solid var(--line);border-radius:16px;padding:16px 18px;background:var(--bg)}
+.where h3{font-size:17px;margin-bottom:4px}
+.where p{margin:6px 0;font-size:14px;color:var(--mute)}
+.where p.safe{color:var(--warn)}
+.lnk{display:inline-block;font:600 14px Inter,sans-serif;color:var(--acc);border:1px solid var(--acc);border-radius:99px;padding:7px 14px;text-decoration:none;background:#fff}
+.vbox{border-left:4px solid var(--ok);background:var(--oks);border-radius:6px 12px 12px 6px;padding:12px 14px;margin:8px 0}
+.vbox p{color:var(--ink);margin:6px 0}
+.vtag{display:inline-block;font:600 12px Inter,sans-serif;background:var(--ok);color:#fff;border-radius:6px;padding:3px 9px}
 .hide{display:none}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
@@ -114,6 +122,7 @@ footer .legal{border-left:4px solid var(--ink);padding-left:14px;max-width:46em;
 <span class="tag">Template, not legal advice</span>
 <div class="paper" id="letter"></div>
 <div class="note hide" id="cnote">Telecoms must keep some records, such as KYC, under their licence rules. Expect a partial refusal on erasure. That is normal.</div>
+<div class="where" id="where"></div>
 <div class="row"><button data-act="copy" id="copyb">Copy request</button><button class="ghost" data-act="log">I sent this, track it</button></div>
 <p style="font-size:13px;color:var(--mute);margin:12px 0 0">Find the company’s Grievance Officer or data protection contact in its privacy policy, then send the request by email or web form. Your name and account are never saved.</p>
 </div>
@@ -140,11 +149,11 @@ footer .legal{border-left:4px solid var(--ink);padding-left:14px;max-width:46em;
 const DAYS=90, KEY='privy.v1';
 const TYPES={
  access:{label:'Access',hint:'Ask what data they hold and who they shared it with.',subject:'Request for access to my personal data',
-  body:'I am a Data Principal under the Digital Personal Data Protection Act, 2023. Under Section 11, I request a summary of the personal data you hold about me, the processing activities carried out on it, and the identities of all other Data Fiduciaries and Processors with whom you have shared it.'},
+  body:'I am writing as the person whose personal data you hold, in line with the rights described in the Digital Personal Data Protection Act, 2023 (Section 11). I would like a summary of the personal data you hold about me, how it is being used, and which other companies or processors it has been shared with. If you have a standard process for such requests, please let me know how to follow it.'},
  correction:{label:'Correction',hint:'Ask them to fix data that is wrong or out of date.',subject:'Request for correction of my personal data',
-  body:'I am a Data Principal under the Digital Personal Data Protection Act, 2023. Under Section 12, I request correction or completion of inaccurate or incomplete personal data you hold about me. Please tell me which details you hold so I can specify the corrections.'},
+  body:'I am writing as the person whose personal data you hold, in line with the rights described in the Digital Personal Data Protection Act, 2023 (Section 12). I would like to correct or complete personal data about me that may be inaccurate or incomplete. Please tell me which details you hold so I can specify the corrections, and how to submit them.'},
  erasure:{label:'Erasure',hint:'Ask them to delete your data and stop using it.',subject:'Request for erasure of my personal data',
-  body:'I am a Data Principal under the Digital Personal Data Protection Act, 2023. Under Section 12, I request erasure of my personal data, and I withdraw my consent for its processing. Please erase all data that you are not legally required to retain, and tell me which data you must keep and under which legal requirement.'}
+  body:'I am writing as the person whose personal data you hold, in line with the rights described in the Digital Personal Data Protection Act, 2023 (Section 12). I would like my personal data erased and, where its use is based on my consent, I withdraw that consent. If any of it must be kept for legal reasons, please tell me which data and why. I understand this may affect my access to the service.'}
 };
 const D=(n,c,d)=>({name:n,category:c,data:d});
 const SOC='profile, contact details, posts, messages, location, device info';
@@ -181,6 +190,33 @@ function render(){
   <input data-act="note" data-i="${i}" value="${esc(r.note||'')}" placeholder="Add a note, e.g. what they said" aria-label="Note"><button class="ghost" data-act="del" data-i="${i}">Remove</button></div></div>`)}).join('')
   :'<div class="empty">No requests yet. Pick a service above and write your first one.</div>';
 }
+const POLICY={'Facebook':'https://www.facebook.com/privacy/policy/','Instagram':'https://privacycenter.instagram.com/policy','WhatsApp':'https://www.whatsapp.com/legal/privacy-policy','X (Twitter)':'https://x.com/en/privacy','YouTube / Google':'https://policies.google.com/privacy','LinkedIn':'https://www.linkedin.com/legal/privacy-policy','Snapchat':'https://values.snap.com/privacy/privacy-policy','Airtel':'https://www.airtel.in/privacy-policy'};
+const C='2026-10-29';
+const META_ADDR='Meta Platforms, Inc, Unit 28 and 29, The Executive Centre, Level 18, DLF Cyber City, Building No. 5, Tower A, Phase III, Gurgaon 122002, India';
+const META_NOTE='Use the contact form on the official page, signed with an electronic signature. The email is only for questions about the grievance process. The officer handles user grievances and does not receive legal process.';
+const VERIFIED={
+'Instagram':{checked:C,source:'https://help.instagram.com/1359806704386690/',email:'fbgoindia@support.facebook.com',address:META_ADDR,note:META_NOTE},
+'Facebook':{checked:C,source:'https://www.facebook.com/help/172990116225777',email:'fbgoindia@support.facebook.com',address:META_ADDR,note:META_NOTE},
+'WhatsApp':{checked:C,source:'https://faq.whatsapp.com/3166176253599957',email:'grievance_officer_wa@support.whatsapp.com',address:'WhatsApp LLC, Attention: Grievance Officer, Unit B8 and B10, The Executive Center, Level 18, DLF Cyber City, Building No. 5, Tower A, Phase III, Gurgaon 122002, India',note:'Use the contact form on the official page, signed with an electronic signature, and give your phone number in full international format. Not for law enforcement requests or legal process.'},
+'X (Twitter)':{checked:C,source:'https://help.x.com/en/rules-and-policies/x-india',form:'https://help.x.com/en/forms/report-to-grievance-officer-india',address:'X Corp., 8th Floor, The Estate, 121 Dickenson Road, Bangalore 560 042, India',note:'X says its Resident Grievance Officer cannot be contacted by email, and that it does not accept legal process by email. Use the grievance officer form.'},
+'YouTube / Google':{checked:C,source:'https://www.youtube.com/t/contact_us?gl=IN',email:'support-in@google.com',address:'Resident Grievance Officer for YouTube, Google LLC - India Liaison Office, Unit No. 26, The Executive Center, Level 8, DLF Centre, Sansad Marg, Connaught Place, New Delhi 110001, India',note:'This is YouTube’s page, and it asks you to use YouTube’s webforms for content concerns. It is not a general contact for your Google account data, so also check your Google Account privacy tools.'},
+'Snapchat':{checked:C,source:'https://help.snapchat.com/hc/en-us/articles/7012329553812-Snap-Inc-Resident-Grievance-Officer-India',email:'grievance-officer-in@snap.com',address:'Snap Camera India Private Limited, Diamond Centre, Unit No 26, Ground Floor, near Vardhman Industrial Estate, Vikhroli (West), Mumbai 400043, India',note:'Snap says this contact is only for grievances within the scope of India’s IT Act, 2000 and its rules. Repeated out-of-scope reports can lead to a warning and declined reports.'},
+'LinkedIn':{checked:C,source:'https://www.linkedin.com/help/linkedin/answer/a1335707/grievance-officer-for-india',address:'LinkedIn Technology Information Private Limited, Memphis North, Bagmane Capital, KR Puram – Marathahalli Outer Ring Road, Bangalore, Karnataka 560048, India',note:'LinkedIn says this address is only for receiving communications addressed to LinkedIn Corporation. For issues not covered by its report links, use the India Grievance Officer Form linked on that page.'},
+'Jio':{checked:C,role:'Privacy Grievance Officer',source:'https://www.jio.com/jcms/en-in/privacy-policy/',email:'grievance.officer@jio.com',note:'Jio’s policy says you can ask for access, correction or deletion by contacting Jio, visiting a Jio Store, or calling the toll-free number printed in the policy. It warns that deletion may end your registration or access to services, and that it may refuse where the law requires it to keep data. The policy shows a last-updated date of 26 May 2016.'},
+'Airtel':{checked:C,role:'Grievance Officer (privacy feedback)',source:'https://www.airtel.in/privacy-policy/',email:'Content.Grievance@airtel.com',address:'Airtel Center, Plot No. 16, Udyog Vihar Phase IV, Gurgaon 122015, India',note:'Airtel lists this officer under “Feedback and Concerns” about protecting personal information. The details it asks you to include (content title, episode number) suggest the contact is mainly set up for content complaints, so a data request may be redirected.'},
+'Vi (Vodafone Idea)':{checked:C,role:'Privacy Officer',source:'https://www.myvi.in/privacy-policy',email:'privacyofficer@vodafoneidea.com',note:'Vi’s policy gives this email for privacy and security queries, and customercare@vodafoneidea.com for registration or product issues. It also links to an Appellate Authority page if you want to escalate.'}
+};
+function verifiedHTML(v){
+ const lines=[];
+ if(v.email)lines.push('Email: <b>'+esc(v.email)+'</b>');
+ if(v.form)lines.push('Form: <a href="'+esc(v.form)+'" target="_blank" rel="noopener noreferrer">official grievance form</a>');
+ if(v.address)lines.push('Post: '+esc(v.address));
+ return `<div class="vbox"><span class="vtag">Verified ${esc(v.checked)}</span><p><b>${esc(v.role||'Grievance Officer, India')}.</b> Source: <a href="${esc(v.source)}" target="_blank" rel="noopener noreferrer">the company’s official page</a></p><p>${lines.join('<br>')}</p><p>${esc(v.note)}</p></div>`;
+}
+function whereHTML(s){
+ const v=VERIFIED[s.name], p=s.policy||POLICY[s.name], q=encodeURIComponent(s.name+' privacy policy grievance officer India');
+ return `<h3>Where to send it</h3>${v?verifiedHTML(v):`<p>No verified direct contact for ${esc(s.name)} is listed here yet. Search its Help Center for “Grievance Officer India”, or open its privacy policy and look for a Data Protection contact.</p>`}<p>Also check the service’s own settings: many let you download or delete your data in the app, which is often faster than writing a letter.</p><div class="row" style="margin-top:8px">${p?`<a class="lnk" href="${esc(p)}" target="_blank" rel="noopener noreferrer">Open privacy policy</a>`:''}<a class="lnk" href="https://duckduckgo.com/?q=${q}" target="_blank" rel="noopener noreferrer">Search for the contact</a></div><p class="safe">Use only contacts published on the company’s own website. Fake support emails and numbers are common. Never share passwords or OTPs.</p>`;
+}
 function renderComposer(){
  const s=S.services[cur];
  $('#composer').classList.remove('hide');
@@ -188,11 +224,12 @@ function renderComposer(){
  $('#seg').innerHTML=Object.keys(TYPES).map(k=>`<button class="${k===ctype?'on':''}" data-act="type" data-v="${k}">${TYPES[k].label}</button>`).join('');
  $('#chint').textContent=TYPES[ctype].hint;
  $('#cnote').classList.toggle('hide',!(s.category==='Telecom'&&ctype==='erasure'));
+ $('#where').innerHTML=whereHTML(s);
  updateLetter();
 }
 function updateLetter(){
  const s=S.services[cur],t=TYPES[ctype],n=nm.trim()||'[Your full name]',a=acct.trim()||'[Username, email or phone]';
- $('#letter').textContent=`Subject: ${t.subject}\n\nTo the Grievance Officer / Data Protection Officer, ${s.name},\n\n${t.body}\n\nName: ${n}\nAccount: ${a}\n\nPlease acknowledge this request and respond within the timeline required by law.\n\nRegards,\n${n}`;
+ $('#letter').textContent=`Subject: ${t.subject}\n\nTo the Grievance Officer / Data Protection Officer, ${s.name},\n\n${t.body}\n\nName: ${n}\nAccount: ${a}\n\nPlease confirm that you have received this request and let me know when I can expect a response. Thank you for your help.\n\nRegards,\n${n}`;
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-act]');if(!b)return;

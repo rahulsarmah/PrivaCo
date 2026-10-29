@@ -4,7 +4,7 @@
 
 PrivaCo helps ordinary people ask companies what data they hold, correct it, or delete it, and keeps track of who replied. It runs entirely in your browser: no account, no server, no uploads.
 
-**Live demo:** [add your link here once published]
+**Live demo:** [https://rahulsarmah.github.io/PrivaCo/]
 
 ![PrivaCo screenshot](screenshot.png)
 

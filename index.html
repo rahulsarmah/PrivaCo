@@ -79,6 +79,17 @@ footer .legal{border-left:4px solid var(--ink);padding-left:14px;max-width:46em;
 .vbox{border-left:4px solid var(--ok);background:var(--oks);border-radius:6px 12px 12px 6px;padding:12px 14px;margin:8px 0}
 .vbox p{color:var(--ink);margin:6px 0}
 .vtag{display:inline-block;font:600 12px Inter,sans-serif;background:var(--ok);color:#fff;border-radius:6px;padding:3px 9px}
+.mnote{font-size:13px;color:var(--mute);margin:10px 0 0}
+.ctl2{grid-column:1/-1;display:flex;gap:10px;align-items:center}
+.ctl2 select{max-width:200px}
+.tl{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+.tl ol{list-style:none;margin:12px 0 12px 8px;padding:0 0 0 14px;border-left:2px solid var(--line)}
+.tl li{position:relative;margin:0 0 10px;padding-left:10px;font-size:14px}
+.tl li::before{content:"";position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--acc)}
+.tl li b{font-weight:600;margin-right:6px}
+.x{border:0;background:none;color:var(--mute);padding:0 6px;font-size:17px;line-height:1}
+.addev{display:grid;grid-template-columns:150px 1fr auto;gap:8px}
+@media(max-width:640px){.addev{grid-template-columns:1fr}}
 .hide{display:none}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
@@ -123,6 +134,7 @@ footer .legal{border-left:4px solid var(--ink);padding-left:14px;max-width:46em;
 <div class="paper" id="letter"></div>
 <div class="note hide" id="cnote">Telecoms must keep some records, such as KYC, under their licence rules. Expect a partial refusal on erasure. That is normal.</div>
 <div class="where" id="where"></div>
+<div id="mailrow"></div>
 <div class="row"><button data-act="copy" id="copyb">Copy request</button><button class="ghost" data-act="log">I sent this, track it</button></div>
 <p style="font-size:13px;color:var(--mute);margin:12px 0 0">Find the company’s Grievance Officer or data protection contact in its privacy policy, then send the request by email or web form. Your name and account are never saved.</p>
 </div>
@@ -163,10 +175,12 @@ const DEFAULTS=[D('Instagram','Social media',SOC),D('Facebook','Social media','p
 const DOMAINS={'Instagram':'instagram.com','Facebook':'facebook.com','WhatsApp':'whatsapp.com','X (Twitter)':'x.com','YouTube / Google':'youtube.com','Snapchat':'snapchat.com','LinkedIn':'linkedin.com','Jio':'jio.com','Airtel':'airtel.in','Vi (Vodafone Idea)':'myvi.in','BSNL':'bsnl.co.in'};
 const domOf=s=>s.domain||DOMAINS[s.name]||'';
 function logo(s){const d=domOf(s);return(S.logos!==false&&d)?`<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128" alt="" loading="lazy" onerror="this.remove()">`:''}
+const openReqs=new Set();
+function norm(o){o.requests.forEach(r=>{if(!Array.isArray(r.events)){r.events=[{date:r.sent,text:'Request sent'}];if(r.note)r.events.push({date:r.sent,text:r.note})}});return o}
 let S=load(), filter='All', cur=null, ctype='access', nm='', acct='';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(Array.isArray(o.services)&&Array.isArray(o.requests))return o}}catch(e){}return{services:DEFAULTS.map(x=>({...x})),requests:[]}}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(Array.isArray(o.services)&&Array.isArray(o.requests))return norm(o)}}catch(e){}return{services:DEFAULTS.map(x=>({...x})),requests:[]}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function state(r){
@@ -184,10 +198,11 @@ function render(){
   `<div class="svc"><div class="top"><div class="av ${s.category==='Telecom'?'t':''}">${esc(s.name[0])}${logo(s)}</div><div><h3>${esc(s.name)}</h3><small>${esc(s.category)}</small></div></div><p>${esc(s.data||'No details added yet.')}</p><button data-act="send" data-i="${i}">Write a request</button></div>`).join('');
  const w=S.requests.filter(r=>r.status==='waiting').length, o=S.requests.filter(r=>state(r).c==='overdue').length;
  $('#s1').textContent=S.services.length;$('#s2').textContent=w;$('#s3').textContent=o;
- $('#reqs').innerHTML=S.requests.length?S.requests.map((r,i)=>{const st=state(r);return(
-  `<div class="req"><div><h3>${esc(r.service)}: ${esc(TYPES[r.type].label)}</h3><small>Sent ${esc(r.sent)}</small></div><span class="pill ${st.c}">${esc(st.t)}</span>
-  <div class="ctl"><select data-act="status" data-i="${i}" aria-label="Status">${['waiting','replied','completed','refused'].map(v=>`<option value="${v}" ${v===r.status?'selected':''}>${v[0].toUpperCase()+v.slice(1)}</option>`).join('')}</select>
-  <input data-act="note" data-i="${i}" value="${esc(r.note||'')}" placeholder="Add a note, e.g. what they said" aria-label="Note"><button class="ghost" data-act="del" data-i="${i}">Remove</button></div></div>`)}).join('')
+ $('#reqs').innerHTML=S.requests.length?S.requests.map((r,i)=>{const st=state(r),ev=r.events||[],last=ev[ev.length-1];return(
+  `<div class="req"><div><h3>${esc(r.service)}: ${esc(TYPES[r.type].label)}</h3><small>Sent ${esc(r.sent)}${last&&ev.length>1?' · Latest: '+esc(last.text):''}</small></div><span class="pill ${st.c}">${esc(st.t)}</span>
+  <div class="ctl2"><select data-act="status" data-i="${i}" aria-label="Status">${['waiting','replied','completed','refused'].map(v=>`<option value="${v}" ${v===r.status?'selected':''}>${v[0].toUpperCase()+v.slice(1)}</option>`).join('')}</select><button class="ghost" data-act="del" data-i="${i}">Remove</button></div>
+  <details class="tl" data-i="${i}" ${openReqs.has(i)?'open':''}><summary>Timeline (${ev.length})</summary><ol>${ev.map((e,j)=>`<li><b>${esc(e.date)}</b>${esc(e.text)}<button class="x" data-act="delev" data-i="${i}" data-j="${j}" aria-label="Delete this update">×</button></li>`).join('')}</ol>
+  <div class="addev"><input type="date" id="ed${i}" value="${iso(new Date())}" aria-label="Date of update"><input id="et${i}" placeholder="What happened? e.g. Auto-reply received" aria-label="Update text"><button data-act="addev" data-i="${i}">Add update</button></div></details></div>`)}).join('')
   :'<div class="empty">No requests yet. Pick a service above and write your first one.</div>';
 }
 const POLICY={'Facebook':'https://www.facebook.com/privacy/policy/','Instagram':'https://privacycenter.instagram.com/policy','WhatsApp':'https://www.whatsapp.com/legal/privacy-policy','X (Twitter)':'https://x.com/en/privacy','YouTube / Google':'https://policies.google.com/privacy','LinkedIn':'https://www.linkedin.com/legal/privacy-policy','Snapchat':'https://values.snap.com/privacy/privacy-policy','Airtel':'https://www.airtel.in/privacy-policy'};
@@ -195,9 +210,9 @@ const C='2026-10-29';
 const META_ADDR='Meta Platforms, Inc, Unit 28 and 29, The Executive Centre, Level 18, DLF Cyber City, Building No. 5, Tower A, Phase III, Gurgaon 122002, India';
 const META_NOTE='Use the contact form on the official page, signed with an electronic signature. The email is only for questions about the grievance process. The officer handles user grievances and does not receive legal process.';
 const VERIFIED={
-'Instagram':{checked:C,source:'https://help.instagram.com/1359806704386690/',email:'fbgoindia@support.facebook.com',address:META_ADDR,note:META_NOTE},
-'Facebook':{checked:C,source:'https://www.facebook.com/help/172990116225777',email:'fbgoindia@support.facebook.com',address:META_ADDR,note:META_NOTE},
-'WhatsApp':{checked:C,source:'https://faq.whatsapp.com/3166176253599957',email:'grievance_officer_wa@support.whatsapp.com',address:'WhatsApp LLC, Attention: Grievance Officer, Unit B8 and B10, The Executive Center, Level 18, DLF Cyber City, Building No. 5, Tower A, Phase III, Gurgaon 122002, India',note:'Use the contact form on the official page, signed with an electronic signature, and give your phone number in full international format. Not for law enforcement requests or legal process.'},
+'Instagram':{checked:C,source:'https://help.instagram.com/1359806704386690/',email:'fbgoindia@support.facebook.com',formOnly:true,address:META_ADDR,note:META_NOTE},
+'Facebook':{checked:C,source:'https://www.facebook.com/help/172990116225777',email:'fbgoindia@support.facebook.com',formOnly:true,address:META_ADDR,note:META_NOTE},
+'WhatsApp':{checked:C,source:'https://faq.whatsapp.com/3166176253599957',email:'grievance_officer_wa@support.whatsapp.com',formOnly:true,address:'WhatsApp LLC, Attention: Grievance Officer, Unit B8 and B10, The Executive Center, Level 18, DLF Cyber City, Building No. 5, Tower A, Phase III, Gurgaon 122002, India',note:'Use the contact form on the official page, signed with an electronic signature, and give your phone number in full international format. Not for law enforcement requests or legal process.'},
 'X (Twitter)':{checked:C,source:'https://help.x.com/en/rules-and-policies/x-india',form:'https://help.x.com/en/forms/report-to-grievance-officer-india',address:'X Corp., 8th Floor, The Estate, 121 Dickenson Road, Bangalore 560 042, India',note:'X says its Resident Grievance Officer cannot be contacted by email, and that it does not accept legal process by email. Use the grievance officer form.'},
 'YouTube / Google':{checked:C,source:'https://www.youtube.com/t/contact_us?gl=IN',email:'support-in@google.com',address:'Resident Grievance Officer for YouTube, Google LLC - India Liaison Office, Unit No. 26, The Executive Center, Level 8, DLF Centre, Sansad Marg, Connaught Place, New Delhi 110001, India',note:'This is YouTube’s page, and it asks you to use YouTube’s webforms for content concerns. It is not a general contact for your Google account data, so also check your Google Account privacy tools.'},
 'Snapchat':{checked:C,source:'https://help.snapchat.com/hc/en-us/articles/7012329553812-Snap-Inc-Resident-Grievance-Officer-India',email:'grievance-officer-in@snap.com',address:'Snap Camera India Private Limited, Diamond Centre, Unit No 26, Ground Floor, near Vardhman Industrial Estate, Vikhroli (West), Mumbai 400043, India',note:'Snap says this contact is only for grievances within the scope of India’s IT Act, 2000 and its rules. Repeated out-of-scope reports can lead to a warning and declined reports.'},
@@ -227,9 +242,25 @@ function renderComposer(){
  $('#where').innerHTML=whereHTML(s);
  updateLetter();
 }
-function updateLetter(){
+function letterParts(){
  const s=S.services[cur],t=TYPES[ctype],n=nm.trim()||'[Your full name]',a=acct.trim()||'[Username, email or phone]';
- $('#letter').textContent=`Subject: ${t.subject}\n\nTo the Grievance Officer / Data Protection Officer, ${s.name},\n\n${t.body}\n\nName: ${n}\nAccount: ${a}\n\nPlease confirm that you have received this request and let me know when I can expect a response. Thank you for your help.\n\nRegards,\n${n}`;
+ return{subject:t.subject,body:`To the Grievance Officer / Data Protection Officer, ${s.name},\n\n${t.body}\n\nName: ${n}\nAccount: ${a}\n\nPlease confirm that you have received this request and let me know when I can expect a response. Thank you for your help.\n\nRegards,\n${n}`};
+}
+function mailHTML(s,L){
+ const v=VERIFIED[s.name];
+ if(!v)return '';
+ if(v.formOnly)return `<p class="mnote">${esc(s.name)} asks you to use its contact form, not email. Copy the letter, then paste it into the form on the official page.</p><div class="row" style="margin-top:8px"><a class="lnk" href="${esc(v.source)}" target="_blank" rel="noopener noreferrer">Open the official page</a></div>`;
+ if(!v.email&&v.form)return `<p class="mnote">${esc(s.name)} takes requests through a form. Copy the letter, then paste it into the form.</p><div class="row" style="margin-top:8px"><a class="lnk" href="${esc(v.form)}" target="_blank" rel="noopener noreferrer">Open the grievance form</a></div>`;
+ if(!v.email)return '';
+ const sub=encodeURIComponent(L.subject),to=encodeURIComponent(v.email);
+ const mt='mailto:'+v.email+'?subject='+sub+'&body='+encodeURIComponent(L.body.replace(/\n/g,'\r\n'));
+ const gm='https://mail.google.com/mail/?view=cm&fs=1&to='+to+'&su='+sub+'&body='+encodeURIComponent(L.body);
+ return `<div class="row" style="margin-top:12px"><a class="lnk" href="${esc(mt)}">Open in my email app</a><a class="lnk" href="${esc(gm)}" target="_blank" rel="noopener noreferrer">Open in Gmail</a></div><p class="mnote">This opens a draft addressed to ${esc(v.email)}. PrivaCo never sends anything: you check the draft and press Send yourself.</p>`;
+}
+function updateLetter(){
+ const s=S.services[cur],L=letterParts();
+ $('#letter').textContent='Subject: '+L.subject+'\n\n'+L.body;
+ $('#mailrow').innerHTML=mailHTML(s,L);
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-act]');if(!b)return;
@@ -241,23 +272,26 @@ document.addEventListener('click',e=>{
  else if(a==='copy'){const txt=$('#letter').textContent;
   (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{b.textContent='Copied'},()=>{const r=document.createRange();r.selectNodeContents($('#letter'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent='Selected, press Ctrl+C'});
   setTimeout(()=>b.textContent='Copy request',2500)}
- else if(a==='log'){S.requests.unshift({service:S.services[cur].name,type:ctype,sent:iso(new Date()),status:'waiting',note:''});save();render();$('#requests').scrollIntoView()}
- else if(a==='del'){S.requests.splice(i,1);save();render()}
+ else if(a==='log'){S.requests.unshift({service:S.services[cur].name,type:ctype,sent:iso(new Date()),status:'waiting',note:'',events:[{date:iso(new Date()),text:'Request sent'}]});openReqs.clear();save();render();$('#requests').scrollIntoView()}
+ else if(a==='del'){S.requests.splice(i,1);openReqs.clear();save();render()}
+ else if(a==='addev'){const d=$('#ed'+i).value||iso(new Date()),tx=$('#et'+i).value.trim();if(!tx)return;S.requests[i].events.push({date:d,text:tx});S.requests[i].events.sort((x,y)=>x.date.localeCompare(y.date));openReqs.add(i);save();render()}
+ else if(a==='delev'){S.requests[i].events.splice(+b.dataset.j,1);openReqs.add(i);save();render()}
  else if(a==='export'){const u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));const l=document.createElement('a');l.href=u;l.download='privaco-backup.json';l.click();URL.revokeObjectURL(u)}
  else if(a==='import'){$('#file').click()}
 });
 document.addEventListener('change',e=>{
  const t=e.target,i=+t.dataset.i;
- if(t.dataset.act==='status'){S.requests[i].status=t.value;save();render()}
+ if(t.dataset.act==='status'){S.requests[i].status=t.value;S.requests[i].events.push({date:iso(new Date()),text:'Status set to '+t.value});save();render()}
  else if(t.dataset.act==='note'){S.requests[i].note=t.value;save()}
  else if(t.id==='logos'){S.logos=t.checked;save();render()}
- else if(t.id==='file'&&t.files[0]){const f=new FileReader();f.onload=()=>{try{const o=JSON.parse(f.result);if(!Array.isArray(o.services)||!Array.isArray(o.requests))throw 0;S=o;save();render();alert('Backup imported.')}catch(x){alert('That file is not a valid PrivaCo backup.')}};f.readAsText(t.files[0]);t.value=''}
+ else if(t.id==='file'&&t.files[0]){const f=new FileReader();f.onload=()=>{try{const o=JSON.parse(f.result);if(!Array.isArray(o.services)||!Array.isArray(o.requests))throw 0;S=norm(o);save();render();alert('Backup imported.')}catch(x){alert('That file is not a valid PrivaCo backup.')}};f.readAsText(t.files[0]);t.value=''}
 });
 $('#nm').addEventListener('input',e=>{nm=e.target.value;updateLetter()});
 $('#ac').addEventListener('input',e=>{acct=e.target.value;updateLetter()});
 $('#addf').addEventListener('submit',e=>{e.preventDefault();
  const n=$('#an').value.trim();if(!n)return;
  S.services.push({name:n,category:$('#ac2').value,data:$('#ad').value.trim(),domain:$('#aw').value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'')});save();e.target.reset();render()});
+document.addEventListener('toggle',e=>{const d=e.target;if(d.classList&&d.classList.contains('tl')){const i=+d.dataset.i;d.open?openReqs.add(i):openReqs.delete(i)}},true);
 render();
 </script>
 </body>

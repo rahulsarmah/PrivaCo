@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrivaCo: track your data requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Newsreader:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6fb;--card:#fff;--ink:#14141f;--mute:#6a6b7d;--line:#e3e4ee;--acc:#5b4bff;--accs:#ecebff;--lime:#d4f57a;--ok:#0f7a55;--oks:#dff5ea;--warn:#a85b00;--warns:#fff0d4;--bad:#c2261f;--bads:#fde6e4}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 Inter,system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:20px 20px 60px}
+h1,h2,h3{font-family:'Bricolage Grotesque',Inter,sans-serif;margin:0;letter-spacing:-.02em}
+nav{display:flex;justify-content:space-between;align-items:center;padding:6px 0 30px}
+.logo{font:800 22px 'Bricolage Grotesque',sans-serif;display:flex;align-items:center;gap:8px}
+.logo i{width:22px;height:22px;border-radius:7px 7px 7px 2px;background:var(--acc);display:inline-block}
+.lock{font-size:13px;background:var(--lime);padding:6px 12px;border-radius:99px;font-weight:500}
+.hero h1{font-size:clamp(36px,7vw,68px);line-height:1;font-weight:800;max-width:11em}
+.hero p{max-width:34em;color:var(--mute);font-size:18px;margin:18px 0 0}
+.stats{display:flex;gap:12px;margin:30px 0 8px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 18px;min-width:130px}
+.stat b{font:800 28px 'Bricolage Grotesque',sans-serif;display:block;line-height:1.1}
+.stat span{font-size:13px;color:var(--mute)}
+.stat.bad b{color:var(--bad)}
+section{margin-top:44px}
+.head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h2{font-size:28px;font-weight:700}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:6px 14px;font:500 14px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.svc{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.svc .top{display:flex;gap:12px;align-items:center}
+.av{width:42px;height:42px;border-radius:13px 13px 13px 4px;display:grid;place-items:center;font:800 18px 'Bricolage Grotesque',sans-serif;background:var(--accs);color:var(--acc);flex:none;position:relative;overflow:hidden}
+.av.t{background:var(--lime);color:#2c3b00}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:7px}
+.tog{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:14px;margin-bottom:6px;cursor:pointer}
+.tog input{width:auto}
+.svc h3{font-size:18px}
+.svc small{color:var(--mute);font-size:13px}
+.svc p{margin:0;font-size:14px;color:var(--mute);flex:1}
+button{font:600 14px Inter,sans-serif;cursor:pointer;border-radius:99px;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:9px 16px}
+button.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+button:hover{opacity:.88}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;margin-top:16px}
+.seg{display:flex;gap:6px;background:var(--bg);padding:5px;border-radius:99px;width:max-content;max-width:100%;overflow:auto}
+.seg button{background:transparent;color:var(--ink);border:0;padding:8px 16px}
+.seg button.on{background:var(--card);box-shadow:0 1px 4px #0002}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+@media(max-width:640px){.fields{grid-template-columns:1fr}}
+label{font-size:13px;color:var(--mute);display:block;margin-bottom:4px}
+input,select,textarea{width:100%;font:400 15px Inter,sans-serif;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+.paper{background:#fffef9;border:1px solid #e6e2cf;border-left:5px solid var(--ink);border-radius:6px 16px 16px 6px;padding:22px 24px;font:400 16.5px/1.65 Newsreader,Georgia,serif;white-space:pre-wrap;margin-top:6px}
+.tag{display:inline-block;font:600 12px Inter,sans-serif;background:var(--ink);color:#fff;border-radius:6px;padding:3px 9px;margin-bottom:8px}
+.note{background:var(--warns);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:14px;margin-top:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.req{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;display:grid;grid-template-columns:1fr auto;gap:10px 16px;margin-bottom:10px}
+.req h3{font-size:17px}
+.req small{color:var(--mute)}
+.pill{font:600 13px Inter,sans-serif;border-radius:99px;padding:4px 12px;white-space:nowrap}
+.waiting{background:var(--accs);color:var(--acc)}.replied{background:var(--warns);color:var(--warn)}
+.completed{background:var(--oks);color:var(--ok)}.refused,.overdue{background:var(--bads);color:var(--bad)}
+.req .ctl{grid-column:1/-1;display:grid;grid-template-columns:170px 1fr auto;gap:10px;align-items:center}
+@media(max-width:640px){.req .ctl{grid-template-columns:1fr}}
+.empty{border:2px dashed var(--line);border-radius:20px;padding:26px;text-align:center;color:var(--mute)}
+details{margin-top:18px}
+summary{cursor:pointer;font-weight:600}
+footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--mute);font-size:14px}
+footer .legal{border-left:4px solid var(--ink);padding-left:14px;max-width:46em;color:var(--ink)}
+.hide{display:none}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><div class="logo"><i></i>PrivaCo</div><div class="lock">Your data stays on this device</div></nav>
+
+<header class="hero">
+<h1>Ask companies what they know about you.</h1>
+<p>Write a data request under India’s DPDP Act, log when you sent it, and see who replied. Nothing is uploaded anywhere.</p>
+<div class="stats">
+<div class="stat"><b id="s1">0</b><span>services tracked</span></div>
+<div class="stat"><b id="s2">0</b><span>requests waiting</span></div>
+<div class="stat bad"><b id="s3">0</b><span>overdue</span></div>
+</div>
+</header>
+
+<section id="services">
+<div class="head"><h2>Where your data lives</h2><div class="chips" id="chips"></div></div>
+<div class="grid" id="grid"></div>
+<details class="panel"><summary>Add a service</summary>
+<form id="addf" class="fields">
+<div><label for="an">Service name</label><input id="an" required placeholder="e.g. Swiggy"></div>
+<div><label for="ac2">Category</label><select id="ac2"><option>Social media</option><option>Telecom</option><option>Shopping</option><option>Banking</option><option>Other</option></select></div>
+<div style="grid-column:1/-1"><label for="ad">What data might it hold?</label><input id="ad" placeholder="e.g. address, order history, phone number"></div>
+<div style="grid-column:1/-1"><label for="aw">Website, for the logo (optional)</label><input id="aw" placeholder="e.g. swiggy.com"></div>
+<div><button type="submit">Add service</button></div>
+</form></details>
+</section>
+
+<section id="composer" class="hide">
+<div class="head"><h2 id="ctitle"></h2><button class="ghost" data-act="close">Close</button></div>
+<div class="panel">
+<div class="seg" id="seg"></div>
+<p id="chint" style="color:var(--mute);margin:12px 0 0"></p>
+<div class="fields">
+<div><label for="nm">Your full name</label><input id="nm" autocomplete="name"></div>
+<div><label for="ac">Your account (username, email or phone)</label><input id="ac"></div>
+</div>
+<span class="tag">Template, not legal advice</span>
+<div class="paper" id="letter"></div>
+<div class="note hide" id="cnote">Telecoms must keep some records, such as KYC, under their licence rules. Expect a partial refusal on erasure. That is normal.</div>
+<div class="row"><button data-act="copy" id="copyb">Copy request</button><button class="ghost" data-act="log">I sent this, track it</button></div>
+<p style="font-size:13px;color:var(--mute);margin:12px 0 0">Find the company’s Grievance Officer or data protection contact in its privacy policy, then send the request by email or web form. Your name and account are never saved.</p>
+</div>
+</section>
+
+<section id="requests">
+<div class="head"><h2>Your requests</h2></div>
+<div id="reqs"></div>
+</section>
+
+<footer>
+<div class="row" style="margin:0 0 20px">
+<button class="ghost" data-act="export">Export backup</button>
+<button class="ghost" data-act="import">Import backup</button>
+<input type="file" id="file" accept="application/json" class="hide">
+</div>
+<label class="tog"><input type="checkbox" id="logos"> Show company logos</label>
+<p style="margin:0 0 20px;font-size:13px">Logos are fetched from Google’s icon service, which tells Google which services you track. Turn this off to stay fully offline.</p>
+<p class="legal">PrivaCo writes request templates based on the Digital Personal Data Protection Act, 2023. It is not a law firm and does not give legal advice. Section references may need checking, and some DPDP obligations only fully apply from 2027, so a company may not yet have a formal process. The 90-day countdown is a personal reminder, not a legal deadline.</p>
+</footer>
+</div>
+
+<script>
+const DAYS=90, KEY='privy.v1';
+const TYPES={
+ access:{label:'Access',hint:'Ask what data they hold and who they shared it with.',subject:'Request for access to my personal data',
+  body:'I am a Data Principal under the Digital Personal Data Protection Act, 2023. Under Section 11, I request a summary of the personal data you hold about me, the processing activities carried out on it, and the identities of all other Data Fiduciaries and Processors with whom you have shared it.'},
+ correction:{label:'Correction',hint:'Ask them to fix data that is wrong or out of date.',subject:'Request for correction of my personal data',
+  body:'I am a Data Principal under the Digital Personal Data Protection Act, 2023. Under Section 12, I request correction or completion of inaccurate or incomplete personal data you hold about me. Please tell me which details you hold so I can specify the corrections.'},
+ erasure:{label:'Erasure',hint:'Ask them to delete your data and stop using it.',subject:'Request for erasure of my personal data',
+  body:'I am a Data Principal under the Digital Personal Data Protection Act, 2023. Under Section 12, I request erasure of my personal data, and I withdraw my consent for its processing. Please erase all data that you are not legally required to retain, and tell me which data you must keep and under which legal requirement.'}
+};
+const D=(n,c,d)=>({name:n,category:c,data:d});
+const SOC='profile, contact details, posts, messages, location, device info';
+const TEL='KYC documents, phone number, call and SMS records, location, usage';
+const DEFAULTS=[D('Instagram','Social media',SOC),D('Facebook','Social media','profile, friends, posts, messages, location, ad interests'),D('WhatsApp','Social media','phone number, contacts, profile, usage and device info'),D('X (Twitter)','Social media','profile, posts, messages, email or phone, ad interests'),D('YouTube / Google','Social media','watch history, searches, location, email, device info'),D('Snapchat','Social media','profile, contacts, location, snap metadata'),D('LinkedIn','Social media','profile, work history, connections, messages'),D('Jio','Telecom',TEL),D('Airtel','Telecom',TEL),D('Vi (Vodafone Idea)','Telecom',TEL),D('BSNL','Telecom',TEL)];
+
+const DOMAINS={'Instagram':'instagram.com','Facebook':'facebook.com','WhatsApp':'whatsapp.com','X (Twitter)':'x.com','YouTube / Google':'youtube.com','Snapchat':'snapchat.com','LinkedIn':'linkedin.com','Jio':'jio.com','Airtel':'airtel.in','Vi (Vodafone Idea)':'myvi.in','BSNL':'bsnl.co.in'};
+const domOf=s=>s.domain||DOMAINS[s.name]||'';
+function logo(s){const d=domOf(s);return(S.logos!==false&&d)?`<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128" alt="" loading="lazy" onerror="this.remove()">`:''}
+let S=load(), filter='All', cur=null, ctype='access', nm='', acct='';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(Array.isArray(o.services)&&Array.isArray(o.requests))return o}}catch(e){}return{services:DEFAULTS.map(x=>({...x})),requests:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function state(r){
+ if(r.status!=='waiting')return{t:r.status[0].toUpperCase()+r.status.slice(1),c:r.status};
+ const dl=new Date(r.sent+'T00:00:00');dl.setDate(dl.getDate()+DAYS);
+ const t0=new Date();t0.setHours(0,0,0,0);
+ const left=Math.round((dl-t0)/864e5);
+ return left<0?{t:'Overdue by '+(-left)+' days',c:'overdue'}:{t:left+' days left',c:'waiting'};
+}
+function render(){
+ $('#logos').checked=S.logos!==false;
+ const cats=['All',...new Set(S.services.map(s=>s.category))];
+ $('#chips').innerHTML=cats.map(c=>`<button class="chip ${c===filter?'on':''}" data-act="filter" data-v="${esc(c)}">${esc(c)}</button>`).join('');
+ $('#grid').innerHTML=S.services.map((s,i)=>({s,i})).filter(o=>filter==='All'||o.s.category===filter).map(({s,i})=>
+  `<div class="svc"><div class="top"><div class="av ${s.category==='Telecom'?'t':''}">${esc(s.name[0])}${logo(s)}</div><div><h3>${esc(s.name)}</h3><small>${esc(s.category)}</small></div></div><p>${esc(s.data||'No details added yet.')}</p><button data-act="send" data-i="${i}">Write a request</button></div>`).join('');
+ const w=S.requests.filter(r=>r.status==='waiting').length, o=S.requests.filter(r=>state(r).c==='overdue').length;
+ $('#s1').textContent=S.services.length;$('#s2').textContent=w;$('#s3').textContent=o;
+ $('#reqs').innerHTML=S.requests.length?S.requests.map((r,i)=>{const st=state(r);return(
+  `<div class="req"><div><h3>${esc(r.service)}: ${esc(TYPES[r.type].label)}</h3><small>Sent ${esc(r.sent)}</small></div><span class="pill ${st.c}">${esc(st.t)}</span>
+  <div class="ctl"><select data-act="status" data-i="${i}" aria-label="Status">${['waiting','replied','completed','refused'].map(v=>`<option value="${v}" ${v===r.status?'selected':''}>${v[0].toUpperCase()+v.slice(1)}</option>`).join('')}</select>
+  <input data-act="note" data-i="${i}" value="${esc(r.note||'')}" placeholder="Add a note, e.g. what they said" aria-label="Note"><button class="ghost" data-act="del" data-i="${i}">Remove</button></div></div>`)}).join('')
+  :'<div class="empty">No requests yet. Pick a service above and write your first one.</div>';
+}
+function renderComposer(){
+ const s=S.services[cur];
+ $('#composer').classList.remove('hide');
+ $('#ctitle').textContent='Request to '+s.name;
+ $('#seg').innerHTML=Object.keys(TYPES).map(k=>`<button class="${k===ctype?'on':''}" data-act="type" data-v="${k}">${TYPES[k].label}</button>`).join('');
+ $('#chint').textContent=TYPES[ctype].hint;
+ $('#cnote').classList.toggle('hide',!(s.category==='Telecom'&&ctype==='erasure'));
+ updateLetter();
+}
+function updateLetter(){
+ const s=S.services[cur],t=TYPES[ctype],n=nm.trim()||'[Your full name]',a=acct.trim()||'[Username, email or phone]';
+ $('#letter').textContent=`Subject: ${t.subject}\n\nTo the Grievance Officer / Data Protection Officer, ${s.name},\n\n${t.body}\n\nName: ${n}\nAccount: ${a}\n\nPlease acknowledge this request and respond within the timeline required by law.\n\nRegards,\n${n}`;
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;
+ const a=b.dataset.act,v=b.dataset.v,i=+b.dataset.i;
+ if(a==='filter'){filter=v;render()}
+ else if(a==='send'){cur=i;ctype='access';renderComposer();$('#composer').scrollIntoView()}
+ else if(a==='type'){ctype=v;renderComposer()}
+ else if(a==='close'){cur=null;$('#composer').classList.add('hide')}
+ else if(a==='copy'){const txt=$('#letter').textContent;
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{b.textContent='Copied'},()=>{const r=document.createRange();r.selectNodeContents($('#letter'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent='Selected, press Ctrl+C'});
+  setTimeout(()=>b.textContent='Copy request',2500)}
+ else if(a==='log'){S.requests.unshift({service:S.services[cur].name,type:ctype,sent:iso(new Date()),status:'waiting',note:''});save();render();$('#requests').scrollIntoView()}
+ else if(a==='del'){S.requests.splice(i,1);save();render()}
+ else if(a==='export'){const u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));const l=document.createElement('a');l.href=u;l.download='privaco-backup.json';l.click();URL.revokeObjectURL(u)}
+ else if(a==='import'){$('#file').click()}
+});
+document.addEventListener('change',e=>{
+ const t=e.target,i=+t.dataset.i;
+ if(t.dataset.act==='status'){S.requests[i].status=t.value;save();render()}
+ else if(t.dataset.act==='note'){S.requests[i].note=t.value;save()}
+ else if(t.id==='logos'){S.logos=t.checked;save();render()}
+ else if(t.id==='file'&&t.files[0]){const f=new FileReader();f.onload=()=>{try{const o=JSON.parse(f.result);if(!Array.isArray(o.services)||!Array.isArray(o.requests))throw 0;S=o;save();render();alert('Backup imported.')}catch(x){alert('That file is not a valid PrivaCo backup.')}};f.readAsText(t.files[0]);t.value=''}
+});
+$('#nm').addEventListener('input',e=>{nm=e.target.value;updateLetter()});
+$('#ac').addEventListener('input',e=>{acct=e.target.value;updateLetter()});
+$('#addf').addEventListener('submit',e=>{e.preventDefault();
+ const n=$('#an').value.trim();if(!n)return;
+ S.services.push({name:n,category:$('#ac2').value,data:$('#ad').value.trim(),domain:$('#aw').value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'')});save();e.target.reset();render()});
+render();
+</script>
+</body>
+</html>
